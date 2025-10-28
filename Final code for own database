@@ -1,0 +1,108 @@
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'school_management')
+BEGIN
+    EXEC('CREATE SCHEMA school_management');
+END;
+GO
+
+CREATE TABLE school_management.Departments (
+    department_id INT IDENTITY(1,1) PRIMARY KEY,
+    department_name NVARCHAR(100) NOT NULL UNIQUE,
+    head_of_department NVARCHAR(100),
+    created_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+CREATE TABLE school_management.Instructors (
+    instructor_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name NVARCHAR(50) NOT NULL,
+    last_name NVARCHAR(50) NOT NULL,
+    email NVARCHAR(100) UNIQUE NOT NULL,
+    phone NVARCHAR(20),
+    hire_date DATE,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES school_management.Departments(department_id)
+        ON DELETE SET NULL
+);
+GO
+
+CREATE TABLE school_management.Students (
+    student_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name NVARCHAR(50) NOT NULL,
+    last_name NVARCHAR(50) NOT NULL,
+    email NVARCHAR(100) UNIQUE NOT NULL,
+    date_of_birth DATE,
+    gender NVARCHAR(10) CHECK (gender IN ('Male','Female','Other')),
+    department_id INT NULL,
+    enrollment_year INT,
+    status NVARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active','Inactive','Graduated')),
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (department_id) REFERENCES school_management.Departments(department_id)
+        ON DELETE SET NULL
+);
+GO
+
+CREATE TABLE school_management.Courses (
+    course_id INT IDENTITY(1,1) PRIMARY KEY,
+    course_name NVARCHAR(100) NOT NULL,
+    course_code NVARCHAR(10) UNIQUE NOT NULL,
+    description NVARCHAR(MAX),
+    credits INT DEFAULT 3,
+    start_date DATE,
+    end_date DATE,
+    department_id INT NULL,
+    instructor_id INT NULL,
+    FOREIGN KEY (department_id) REFERENCES school_management.Departments(department_id)
+        ON DELETE SET NULL,
+    FOREIGN KEY (instructor_id) REFERENCES school_management.Instructors(instructor_id)
+        ON DELETE SET NULL
+);
+GO
+
+CREATE TABLE school_management.Enrollments (
+    enrollment_id INT IDENTITY(1,1) PRIMARY KEY,
+    student_id INT NOT NULL,
+    course_id INT NOT NULL,
+    enrolled_on DATE DEFAULT GETDATE(),
+    status NVARCHAR(20) DEFAULT 'Enrolled' CHECK (status IN ('Enrolled','Dropped','Completed')),
+    FOREIGN KEY (student_id) REFERENCES school_management.Students(student_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES school_management.Courses(course_id)
+        ON DELETE CASCADE,
+    CONSTRAINT UQ_Enrollments UNIQUE (student_id, course_id)
+);
+GO
+
+CREATE TABLE school_management.Grades (
+    grade_id INT IDENTITY(1,1) PRIMARY KEY,
+    enrollment_id INT NOT NULL,
+    grade_letter NVARCHAR(20) CHECK (grade_letter IN ('A','B','C','D','F','Incomplete')),
+    grade_points DECIMAL(3,2),
+    graded_on DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (enrollment_id) REFERENCES school_management.Enrollments(enrollment_id)
+        ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE school_management.Attendance (
+    attendance_id INT IDENTITY(1,1) PRIMARY KEY,
+    enrollment_id INT NOT NULL,
+    attendance_date DATE NOT NULL,
+    status NVARCHAR(20) DEFAULT 'Present' CHECK (status IN ('Present','Absent','Excused')),
+    FOREIGN KEY (enrollment_id) REFERENCES school_management.Enrollments(enrollment_id)
+        ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE school_management.Announcements (
+    announcement_id INT IDENTITY(1,1) PRIMARY KEY,
+    course_id INT NULL,
+    instructor_id INT NULL,
+    title NVARCHAR(150) NOT NULL,
+    message NVARCHAR(MAX) NOT NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (course_id) REFERENCES school_management.Courses(course_id)
+        ON DELETE SET NULL,
+    FOREIGN KEY (instructor_id) REFERENCES school_management.Instructors(instructor_id)
+        ON DELETE SET NULL
+);
+GO
